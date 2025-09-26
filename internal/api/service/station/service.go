@@ -93,20 +93,20 @@ func (s *service) CheckScheduleByStation(id string) (resp []ScheduleOut, err err
 }
 
 func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) {
-	var (
-		LebakBulusTripName = "Stasiun Lebak Bulus Grab"
-		BundaranHITripName = "Stasiun Bundaran HI Bank DKI"
-	)
+	// var (
+	// 	LebakBulusTripName = "Stasiun Lebak Bulus Grab"
+	// 	BundaranHITripName = "Stasiun Bundaran HI Bank DKI"
+	// )
 
-	scheduleLebakBulus := schedule.ScheduleLebakBulus
-	scheduleBundaranHI := schedule.ScheduleBundaranHI
+	// scheduleLebakBulus := schedule.ScheduleLebakBulus
+	// scheduleBundaranHI := schedule.ScheduleBundaranHI
 
-	scheduleLebakBulusParsed, err := ConvertScheduleToTimeFormat(scheduleLebakBulus)
+	scheduleLebakBulusParsed, err := ConvertScheduleToTimeFormat(schedule.ScheduleLebakBulus)
 	if err != nil {
 		return
 	}
 
-	scheduleBundaranHIParsed, err := ConvertScheduleToTimeFormat(scheduleBundaranHI)
+	scheduleBundaranHIParsed, err := ConvertScheduleToTimeFormat(schedule.ScheduleBundaranHI)
 	if err != nil {
 		return
 	}
@@ -114,7 +114,7 @@ func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) 
 	for _, item := range scheduleLebakBulusParsed {
 		if item.Format("15:04") > time.Now().Format("15:04") {
 			resp = append(resp, ScheduleOut{
-				StationName: LebakBulusTripName,
+				StationName: schedule.StationName,
 				Time:        item.Format("15:04"),
 			})
 		}
@@ -123,7 +123,7 @@ func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) 
 	for _, item := range scheduleBundaranHIParsed {
 		if item.Format("15:04") > time.Now().Format("15:04") {
 			resp = append(resp, ScheduleOut{
-				StationName: BundaranHITripName,
+				StationName: schedule.StationName,
 				Time:        item.Format("15:04"),
 			})
 		}
