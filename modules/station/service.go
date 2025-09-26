@@ -2,7 +2,9 @@ package station
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/IkrmMrbsy/mrt-schedules/common/client"
@@ -13,6 +15,7 @@ import (
 // Di sini cuma ada 1 fungsi: GetAllStation.
 type Service interface {
 	GetAllStation() (resp []StationOut, err error)
+	CheckScheduleByStation(id string) (resp []ScheduleOut, err error)
 }
 
 // service adalah implementasi dari Service.
@@ -55,6 +58,102 @@ func (s *service) GetAllStation() (resp []StationOut, err error) {
 	// Ubah setiap StationIn menjadi StationOut
 	for _, item := range stations {
 		resp = append(resp, StationOut(item))
+	}
+
+	return
+}
+
+func (s *service) CheckScheduleByStation(id string) (resp []ScheduleOut, err error) {
+	url := "https://jakartamrt.co.id/id/val/stasiuns"
+
+	byteResponse, err := client.DoRequest(s.client, url)
+	if err != nil {
+		return
+	}
+
+	var schedules []ScheduleIn
+	if err := json.Unmarshal(byteResponse, &schedules); err != nil {
+		return nil, err
+	}
+
+	var scheduleSelected ScheduleIn
+	for _, item := range schedules {
+		if item.StationId == id {
+			scheduleSelected = item
+			break
+		}
+	}
+
+	if scheduleSelected.StationId == "" {
+		return nil, errors.New("station not found")
+	}
+
+	resp, err = ConvertDataToResponse(scheduleSelected)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) {
+	var (
+		LebakBulusTripName = "Stasiun Lebak Bulus Grab"
+		BundaranHITripName = "Stasiun Bundaran HI Bank DKI"
+	)
+
+	scheduleLebakBulus := schedule.ScheduleLebakBulus
+	scheduleBundaranHI := schedule.ScheduleBundaranHI
+
+	scheduleLebakBulusParsed, err := ConvertScheduleToTimeFormat(scheduleLebakBulus)
+	if err != nil {
+		return
+	}
+
+	scheduleBundaranHIParsed, err := ConvertScheduleToTimeFormat(scheduleBundaranHI)
+	if err != nil {
+		return
+	}
+
+	for _, item := range scheduleLebakBulusParsed {
+		if item.Format("15:04") > time.Now().Format("15:04") {
+			resp = append(resp, ScheduleOut{
+				StationName: LebakBulusTripName,
+				Time:        item.Format("15:04"),
+			})
+		}
+	}
+
+	for _, item := range scheduleBundaranHIParsed {
+		if item.Format("15:04") > time.Now().Format("15:04") {
+			resp = append(resp, ScheduleOut{
+				StationName: BundaranHITripName,
+				Time:        item.Format("15:04"),
+			})
+		}
+	}
+
+	return
+}
+
+func ConvertScheduleToTimeFormat(schedule string) (resp []time.Time, err error) {
+	var (
+		ParsedTime time.Time
+		schedules  = strings.Split(schedule, ",")
+	)
+
+	for _, item := range schedules {
+		trimedTime := strings.TrimSpace(item)
+		if trimedTime == "" {
+			continue
+		}
+
+		ParsedTime, err = time.Parse("15:04", trimedTime)
+		if err != nil {
+			err = errors.New("invalid time format " + trimedTime)
+			return
+		}
+		resp = append(resp, ParsedTime)
 	}
 
 	return
