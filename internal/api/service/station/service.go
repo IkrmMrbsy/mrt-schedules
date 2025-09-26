@@ -27,10 +27,10 @@ type service struct {
 
 // NewService membuat object service baru.
 // Di sini kita juga set timeout untuk HTTP client supaya request tidak menggantung terlalu lama.
-func NewService(apiURL string) Service {
+func NewService(timeout time.Duration, apiURL string) Service {
 	return &service{
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: timeout,
 		},
 		apiURL: apiURL,
 	}

@@ -3,13 +3,16 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type config struct {
-	MRTApiURL  string
-	ServerPort string
+	ServerPort  string
+	HttpTimeout time.Duration
+	MRTApiURL   string
 }
 
 func LoadConfig() *config {
@@ -17,8 +20,14 @@ func LoadConfig() *config {
 		log.Println("No .env file found, fallback to system env")
 	}
 
+	timeout, _ := strconv.Atoi(os.Getenv("HTTP_TIMEOUT"))
+	if timeout == 0 {
+		timeout = 10
+	}
+
 	return &config{
-		MRTApiURL:  os.Getenv("MRT_API_URL"),
-		ServerPort: os.Getenv("SERVER_PORT"),
+		ServerPort:  os.Getenv("SERVER_PORT"),
+		HttpTimeout: time.Duration(timeout) * time.Second,
+		MRTApiURL:   os.Getenv("MRT_API_URL"),
 	}
 }

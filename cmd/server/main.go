@@ -10,7 +10,7 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	stationService := station.NewService(cfg.MRTApiURL)
+	stationService := station.NewService(cfg.HttpTimeout, cfg.MRTApiURL)
 
 	// Jalankan fungsi InitiateRoutes untuk memulai server
 	InitiateRoutes(stationService, cfg.ServerPort)
