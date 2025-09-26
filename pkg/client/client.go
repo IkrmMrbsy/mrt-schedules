@@ -2,7 +2,7 @@ package client
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -28,7 +28,7 @@ func DoRequest(client *http.Client, url string) ([]byte, error) {
 	}
 
 	// Baca semua isi response body jadi []byte
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

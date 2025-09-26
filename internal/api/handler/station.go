@@ -1,23 +1,23 @@
-package station
+package handler
 
 import (
 	"net/http"
 
-	"github.com/IkrmMrbsy/mrt-schedules/common/response"
+	"github.com/IkrmMrbsy/mrt-schedules/internal/api/service/station"
+	"github.com/IkrmMrbsy/mrt-schedules/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
 // Initiate digunakan untuk mendaftarkan semua route (endpoint) terkait station.
 // - Pertama buat service station (pakai NewService).
 // - Lalu daftarkan route /stations GET yang akan memanggil fungsi GetAllStation.
-func Initiate(router *gin.RouterGroup) {
-	stationService := NewService()
+func Initiate(router *gin.RouterGroup, stationService station.Service) {
 
 	// Buat group route "/stations"
 	station := router.Group("/stations")
 
 	// GET /stations
-	station.GET("", func(c *gin.Context) {
+	station.GET("/", func(c *gin.Context) {
 		GetAllStation(c, stationService)
 	})
 
@@ -31,7 +31,7 @@ func Initiate(router *gin.RouterGroup) {
 // 1. Panggil service.GetAllStation() → ambil data stasiun dari API MRT.
 // 2. Kalau error, balikin response 400 (Bad Request).
 // 3. Kalau sukses, balikin response 200 (OK) beserta data stasiun.
-func GetAllStation(c *gin.Context, service Service) {
+func GetAllStation(c *gin.Context, service station.Service) {
 	datas, err := service.GetAllStation()
 	if err != nil {
 		// Jika error, kembalikan HTTP 400
@@ -55,7 +55,7 @@ func GetAllStation(c *gin.Context, service Service) {
 	)
 }
 
-func CheckScheduleByStation(c *gin.Context, service Service) {
+func CheckScheduleByStation(c *gin.Context, service station.Service) {
 	id := c.Param("id")
 
 	datas, err := service.CheckScheduleByStation(id)

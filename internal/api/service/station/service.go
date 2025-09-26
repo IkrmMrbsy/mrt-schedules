@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IkrmMrbsy/mrt-schedules/common/client"
+	"github.com/IkrmMrbsy/mrt-schedules/pkg/client"
 )
 
 // Service adalah "kontrak" (interface) yang menentukan fungsi apa saja
@@ -22,15 +22,17 @@ type Service interface {
 // Struct ini punya field "client" untuk melakukan HTTP request.
 type service struct {
 	client *http.Client
+	apiURL string
 }
 
 // NewService membuat object service baru.
 // Di sini kita juga set timeout untuk HTTP client supaya request tidak menggantung terlalu lama.
-func NewService() Service {
+func NewService(apiURL string) Service {
 	return &service{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		apiURL: apiURL,
 	}
 }
 
@@ -41,12 +43,8 @@ func NewService() Service {
 // 3. Konversi StationIn → StationOut.
 // 4. Kembalikan hasilnya ke pemanggil.
 func (s *service) GetAllStation() (resp []StationOut, err error) {
-
-	// URL API eksternal MRT
-	url := "https://jakartamrt.co.id/id/val/stasiuns"
-
 	// Lakukan HTTP GET ke API
-	byteResponse, err := client.DoRequest(s.client, url)
+	byteResponse, err := client.DoRequest(s.client, s.apiURL)
 	if err != nil {
 		return
 	}
@@ -64,9 +62,7 @@ func (s *service) GetAllStation() (resp []StationOut, err error) {
 }
 
 func (s *service) CheckScheduleByStation(id string) (resp []ScheduleOut, err error) {
-	url := "https://jakartamrt.co.id/id/val/stasiuns"
-
-	byteResponse, err := client.DoRequest(s.client, url)
+	byteResponse, err := client.DoRequest(s.client, s.apiURL)
 	if err != nil {
 		return
 	}
