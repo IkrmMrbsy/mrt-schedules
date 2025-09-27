@@ -16,6 +16,7 @@ import (
 type Service interface {
 	GetAllStation() (resp []StationOut, err error)
 	CheckScheduleByStation(id string) (resp []ScheduleOut, err error)
+	GetFareAndDuration(fromId, toId string) (resp FareOut, err error)
 }
 
 // service adalah implementasi dari Service.
@@ -90,6 +91,71 @@ func (s *service) CheckScheduleByStation(id string) (resp []ScheduleOut, err err
 	}
 
 	return
+}
+
+func (s *service) GetFareAndDuration(fromId, toId string) (resp FareOut, err error) {
+	byteResp, err := client.DoRequest(s.client, s.apiURL)
+	if err != nil {
+		return resp, err
+	}
+
+	var stations []FareIn
+	if err := json.Unmarshal(byteResp, &stations); err != nil {
+		return resp, err
+	}
+
+	var fromName, toName string
+	var fare, duration string
+
+	for _, st := range stations {
+		if st.Id == fromId {
+			fromName = st.Name
+			for _, e := range st.Estimasi {
+				if e.StationNid == toId {
+					fare = e.Tarif
+					duration = e.Waktu + " menit"
+					break
+				}
+			}
+		}
+		if st.Id == toId {
+			toName = st.Name
+		}
+		if fromName != "" && toName != "" && fare != "" {
+			break
+		}
+	}
+
+	if fare == "" {
+		for _, st := range stations {
+			if st.Id == toId {
+				for _, e := range st.Estimasi {
+					if e.StationNid == fromId {
+						fare = e.Tarif
+						duration = e.Waktu
+						break
+					}
+				}
+			}
+			if fare != "" {
+				break
+			}
+		}
+	}
+
+	if fromName == "" || toName == "" {
+		return resp, errors.New("station not found")
+	}
+	if fare == "" {
+		return resp, errors.New("fare/estimasi not found between stations")
+	}
+
+	resp.From = fromName
+	resp.To = toName
+	resp.Fare = fare
+	resp.Duration = duration
+
+	return resp, nil
 }
 
 func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) {

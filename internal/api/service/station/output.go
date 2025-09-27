@@ -13,3 +13,10 @@ type ScheduleOut struct {
 	StationName string `json:"title"`
 	Time        string `json:"time"`
 }
+
+type FareOut struct {
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Fare     string `json:"fare"`
+	Duration string `json:"duration"`
+}

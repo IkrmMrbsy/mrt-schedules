@@ -17,12 +17,16 @@ func Initiate(router *gin.RouterGroup, stationService station.Service) {
 	station := router.Group("/stations")
 
 	// GET /stations
-	station.GET("/", func(c *gin.Context) {
-		GetAllStation(c, stationService)
+	station.GET("/", func(ctx *gin.Context) {
+		GetAllStation(ctx, stationService)
 	})
 
-	station.GET("/:id", func(c *gin.Context) {
-		CheckScheduleByStation(c, stationService)
+	station.GET("/:id", func(ctx *gin.Context) {
+		CheckScheduleByStation(ctx, stationService)
+	})
+
+	station.GET("/fare", func(ctx *gin.Context) {
+		GetFareAndDuration(ctx, stationService)
 	})
 }
 
@@ -31,11 +35,11 @@ func Initiate(router *gin.RouterGroup, stationService station.Service) {
 // 1. Panggil service.GetAllStation() → ambil data stasiun dari API MRT.
 // 2. Kalau error, balikin response 400 (Bad Request).
 // 3. Kalau sukses, balikin response 200 (OK) beserta data stasiun.
-func GetAllStation(c *gin.Context, service station.Service) {
+func GetAllStation(ctx *gin.Context, service station.Service) {
 	datas, err := service.GetAllStation()
 	if err != nil {
 		// Jika error, kembalikan HTTP 400
-		c.JSON(http.StatusBadRequest,
+		ctx.JSON(http.StatusBadRequest,
 			response.APIResponse{
 				Code:    http.StatusBadRequest,
 				Message: err.Error(),
@@ -46,7 +50,7 @@ func GetAllStation(c *gin.Context, service station.Service) {
 	}
 
 	// Jika sukses, kembalikan HTTP 200 dengan data stasiun
-	c.JSON(http.StatusOK,
+	ctx.JSON(http.StatusOK,
 		response.APIResponse{
 			Code:    http.StatusOK,
 			Message: "Success",
@@ -55,12 +59,12 @@ func GetAllStation(c *gin.Context, service station.Service) {
 	)
 }
 
-func CheckScheduleByStation(c *gin.Context, service station.Service) {
-	id := c.Param("id")
+func CheckScheduleByStation(ctx *gin.Context, service station.Service) {
+	id := ctx.Param("id")
 
 	datas, err := service.CheckScheduleByStation(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest,
+		ctx.JSON(http.StatusBadRequest,
 			response.APIResponse{
 				Code:    http.StatusBadGateway,
 				Message: err.Error(),
@@ -70,11 +74,36 @@ func CheckScheduleByStation(c *gin.Context, service station.Service) {
 		return
 	}
 
-	c.JSON(http.StatusOK,
+	ctx.JSON(http.StatusOK,
 		response.APIResponse{
 			Code:    http.StatusOK,
 			Message: "Success",
 			Data:    datas,
+		},
+	)
+}
+
+func GetFareAndDuration(ctx *gin.Context, service station.Service) {
+	fromId := ctx.Query("from")
+	toId := ctx.Query("to")
+
+	data, err := service.GetFareAndDuration(fromId, toId)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest,
+			response.APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+				Data:    nil,
+			},
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK,
+		response.APIResponse{
+			Code:    http.StatusOK,
+			Message: "success",
+			Data:    data,
 		},
 	)
 }

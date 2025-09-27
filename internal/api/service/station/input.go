@@ -15,3 +15,15 @@ type ScheduleIn struct {
 	ScheduleBundaranHI string `json:"jadwal_hi_biasa"`
 	ScheduleLebakBulus string `json:"jadwal_lb_biasa"`
 }
+
+type EstimasiIn struct {
+	StationNid string `json:"stasiun_nid"`
+	Tarif      string `json:"tarif"`
+	Waktu      string `json:"waktu"`
+}
+type FareIn struct {
+	Id       string       `json:"nid"`
+	Name     string       `json:"title"`
+	Fare     string       `json:"tarif"`
+	Estimasi []EstimasiIn `json:"estimasi"`
+}
