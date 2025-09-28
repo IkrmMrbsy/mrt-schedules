@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/IkrmMrbsy/mrt-schedules/internal/api/service/station"
+	"github.com/IkrmMrbsy/mrt-schedules/internal/api/usecase/station"
 	"github.com/IkrmMrbsy/mrt-schedules/pkg/response"
 	"github.com/gin-gonic/gin"
 )
@@ -9,26 +9,26 @@ import (
 // Initiate digunakan untuk mendaftarkan semua route (endpoint) terkait station.
 // - Pertama buat service station (pakai NewService).
 // - Lalu daftarkan route /stations GET yang akan memanggil fungsi GetAllStation.
-func Initiate(router *gin.RouterGroup, stationService station.Service) {
+func Initiate(router *gin.RouterGroup, usecase station.Usecase) {
 
 	// Buat group route "/stations"
 	station := router.Group("/stations")
 
 	// GET /stations
 	station.GET("/", func(ctx *gin.Context) {
-		GetAllStation(ctx, stationService)
+		GetAllStation(ctx, usecase)
 	})
 
 	station.GET("/:id", func(ctx *gin.Context) {
-		CheckScheduleByStation(ctx, stationService)
+		CheckScheduleByStation(ctx, usecase)
 	})
 
 	station.GET("/fare", func(ctx *gin.Context) {
-		GetFareAndDuration(ctx, stationService)
+		GetFareAndDuration(ctx, usecase)
 	})
 
 	station.GET("/:id/next-train", func(ctx *gin.Context) {
-		GetNextTrainByStation(ctx, stationService)
+		GetNextTrainByStation(ctx, usecase)
 	})
 }
 
@@ -37,8 +37,10 @@ func Initiate(router *gin.RouterGroup, stationService station.Service) {
 // 1. Panggil service.GetAllStation() → ambil data stasiun dari API MRT.
 // 2. Kalau error, balikin response 400 (Bad Request).
 // 3. Kalau sukses, balikin response 200 (OK) beserta data stasiun.
-func GetAllStation(ctx *gin.Context, service station.Service) {
-	resp, err := service.GetAllStation()
+func GetAllStation(ctx *gin.Context, usecase station.Usecase) {
+	name := ctx.Query("name")
+
+	resp, err := usecase.GetAllStation(name)
 	if err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -48,10 +50,10 @@ func GetAllStation(ctx *gin.Context, service station.Service) {
 	response.Success(ctx, resp)
 }
 
-func CheckScheduleByStation(ctx *gin.Context, service station.Service) {
+func CheckScheduleByStation(ctx *gin.Context, usecase station.Usecase) {
 	id := ctx.Param("id")
 
-	resp, err := service.CheckScheduleByStation(id)
+	resp, err := usecase.CheckScheduleByStation(id)
 	if err != nil {
 		response.NotFound(ctx, err.Error())
 		return
@@ -60,11 +62,11 @@ func CheckScheduleByStation(ctx *gin.Context, service station.Service) {
 	response.Success(ctx, resp)
 }
 
-func GetFareAndDuration(ctx *gin.Context, service station.Service) {
+func GetFareAndDuration(ctx *gin.Context, usecase station.Usecase) {
 	fromId := ctx.Query("from")
 	toId := ctx.Query("to")
 
-	resp, err := service.GetFareAndDuration(fromId, toId)
+	resp, err := usecase.GetFareAndDuration(fromId, toId)
 	if err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -73,11 +75,11 @@ func GetFareAndDuration(ctx *gin.Context, service station.Service) {
 	response.Success(ctx, resp)
 }
 
-func GetNextTrainByStation(ctx *gin.Context, service station.Service) {
+func GetNextTrainByStation(ctx *gin.Context, usecase station.Usecase) {
 	id := ctx.Param("id")
 	destination := ctx.Query("destination")
 
-	resp, err := service.GetNextTrainByStation(id, destination)
+	resp, err := usecase.GetNextTrainByStation(id, destination)
 	if err != nil {
 		response.NotFound(ctx, err.Error())
 		return
