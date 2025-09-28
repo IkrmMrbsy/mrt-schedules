@@ -10,10 +10,12 @@ type StationIn struct {
 }
 
 type ScheduleIn struct {
-	StationId          string `json:"nid"`
-	StationName        string `json:"title"`
-	ScheduleBundaranHI string `json:"jadwal_hi_biasa"`
-	ScheduleLebakBulus string `json:"jadwal_lb_biasa"`
+	StationId               string `json:"nid"`
+	StationName             string `json:"title"`
+	ScheduleBundaranHI      string `json:"jadwal_hi_biasa"`
+	ScheduleBundaranHILibur string `json:"jadwal_hi_libur"`
+	ScheduleLebakBulus      string `json:"jadwal_lb_biasa"`
+	ScheduleLebakBulusLibur string `json:"jadwal_lb_libur"`
 }
 
 type EstimasiIn struct {
