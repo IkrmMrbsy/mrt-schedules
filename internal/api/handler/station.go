@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/IkrmMrbsy/mrt-schedules/internal/api/service/station"
 	"github.com/IkrmMrbsy/mrt-schedules/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -28,6 +26,10 @@ func Initiate(router *gin.RouterGroup, stationService station.Service) {
 	station.GET("/fare", func(ctx *gin.Context) {
 		GetFareAndDuration(ctx, stationService)
 	})
+
+	station.GET("/:id/next-train", func(ctx *gin.Context) {
+		GetNextTrainByStation(ctx, stationService)
+	})
 }
 
 // GetAllStation adalah handler untuk route GET /stations.
@@ -36,74 +38,50 @@ func Initiate(router *gin.RouterGroup, stationService station.Service) {
 // 2. Kalau error, balikin response 400 (Bad Request).
 // 3. Kalau sukses, balikin response 200 (OK) beserta data stasiun.
 func GetAllStation(ctx *gin.Context, service station.Service) {
-	datas, err := service.GetAllStation()
+	resp, err := service.GetAllStation()
 	if err != nil {
-		// Jika error, kembalikan HTTP 400
-		ctx.JSON(http.StatusBadRequest,
-			response.APIResponse{
-				Code:    http.StatusBadRequest,
-				Message: err.Error(),
-				Data:    nil,
-			},
-		)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
 	// Jika sukses, kembalikan HTTP 200 dengan data stasiun
-	ctx.JSON(http.StatusOK,
-		response.APIResponse{
-			Code:    http.StatusOK,
-			Message: "Success",
-			Data:    datas,
-		},
-	)
+	response.Success(ctx, resp)
 }
 
 func CheckScheduleByStation(ctx *gin.Context, service station.Service) {
 	id := ctx.Param("id")
 
-	datas, err := service.CheckScheduleByStation(id)
+	resp, err := service.CheckScheduleByStation(id)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest,
-			response.APIResponse{
-				Code:    http.StatusBadGateway,
-				Message: err.Error(),
-				Data:    nil,
-			},
-		)
+		response.NotFound(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK,
-		response.APIResponse{
-			Code:    http.StatusOK,
-			Message: "Success",
-			Data:    datas,
-		},
-	)
+	response.Success(ctx, resp)
 }
 
 func GetFareAndDuration(ctx *gin.Context, service station.Service) {
 	fromId := ctx.Query("from")
 	toId := ctx.Query("to")
 
-	data, err := service.GetFareAndDuration(fromId, toId)
+	resp, err := service.GetFareAndDuration(fromId, toId)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest,
-			response.APIResponse{
-				Code:    http.StatusBadRequest,
-				Message: err.Error(),
-				Data:    nil,
-			},
-		)
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK,
-		response.APIResponse{
-			Code:    http.StatusOK,
-			Message: "success",
-			Data:    data,
-		},
-	)
+	response.Success(ctx, resp)
+}
+
+func GetNextTrainByStation(ctx *gin.Context, service station.Service) {
+	id := ctx.Param("id")
+	destination := ctx.Query("destination")
+
+	resp, err := service.GetNextTrainByStation(id, destination)
+	if err != nil {
+		response.NotFound(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, resp)
 }

@@ -20,3 +20,9 @@ type FareOut struct {
 	Fare     string `json:"fare"`
 	Duration string `json:"duration"`
 }
+
+type NextTrainOut struct {
+	TrainId     string `json:"train_id"`
+	Destination string `json:"destination"`
+	Departure   string `json:"departure_time"`
+}

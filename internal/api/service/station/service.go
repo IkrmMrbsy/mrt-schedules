@@ -17,6 +17,7 @@ type Service interface {
 	GetAllStation() (resp []StationOut, err error)
 	CheckScheduleByStation(id string) (resp []ScheduleOut, err error)
 	GetFareAndDuration(fromId, toId string) (resp FareOut, err error)
+	GetNextTrainByStation(id, destination string) (resp *NextTrainOut, err error)
 }
 
 // service adalah implementasi dari Service.
@@ -158,6 +159,73 @@ func (s *service) GetFareAndDuration(fromId, toId string) (resp FareOut, err err
 	return resp, nil
 }
 
+func (s *service) GetNextTrainByStation(id, destination string) (resp *NextTrainOut, err error) {
+	byteResp, err := client.DoRequest(s.client, s.apiURL)
+	if err != nil {
+		return resp, nil
+	}
+
+	var schedules []ScheduleIn
+	if err := json.Unmarshal(byteResp, &schedules); err != nil {
+		return resp, nil
+	}
+
+	var scheduleSelected ScheduleIn
+	for _, item := range schedules {
+		if item.StationId == id {
+			scheduleSelected = item
+			break
+		}
+	}
+	if scheduleSelected.StationId == "" {
+		return nil, errors.New("station not found")
+	}
+
+	isWeekend := time.Now().Weekday() == time.Saturday || time.Now().Weekday() == time.Sunday
+
+	var times []time.Time
+
+	if destination == "LB" {
+		if isWeekend {
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleLebakBulusLibur)
+		} else {
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleLebakBulus)
+		}
+	} else if destination == "HI" {
+		if isWeekend {
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleBundaranHILibur)
+		} else {
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleBundaranHI)
+		}
+	} else {
+		return nil, errors.New("invalid destination, use 'LB' or 'HI'")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	var next time.Time
+	for _, t := range times {
+		if t.After(now) && (next.IsZero() || t.Before(next)) {
+			next = t
+		}
+	}
+
+	if next.IsZero() {
+		return nil, errors.New("no next train available today")
+	}
+
+	resp = &NextTrainOut{
+		TrainId:     id,
+		Destination: scheduleSelected.StationName,
+		Departure:   next.Format("15:04"),
+	}
+
+	return resp, nil
+}
+
 func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) {
 	// var (
 	// 	LebakBulusTripName = "Stasiun Lebak Bulus Grab"
@@ -199,10 +267,11 @@ func ConvertDataToResponse(schedule ScheduleIn) (resp []ScheduleOut, err error) 
 }
 
 func ConvertScheduleToTimeFormat(schedule string) (resp []time.Time, err error) {
-	var (
-		ParsedTime time.Time
-		schedules  = strings.Split(schedule, ",")
-	)
+	var schedules = strings.Split(schedule, ",")
+	now := time.Now()
+	today := now.Format("2006-01-02")
+
+	loc := time.Now().Location()
 
 	for _, item := range schedules {
 		trimedTime := strings.TrimSpace(item)
@@ -210,12 +279,13 @@ func ConvertScheduleToTimeFormat(schedule string) (resp []time.Time, err error) 
 			continue
 		}
 
-		ParsedTime, err = time.Parse("15:04", trimedTime)
+		fullTimeStr := today + " " + trimedTime
+		parsed, err := time.ParseInLocation("2006-01-02 15:04", fullTimeStr, loc)
 		if err != nil {
 			err = errors.New("invalid time format " + trimedTime)
-			return
+			return nil, err
 		}
-		resp = append(resp, ParsedTime)
+		resp = append(resp, parsed)
 	}
 
 	return
