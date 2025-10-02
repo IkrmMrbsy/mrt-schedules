@@ -145,20 +145,24 @@ func (u *usecase) GetNextTrainByStation(id, destination string) (*NextTrainOut, 
 	}
 
 	now := time.Now()
-	var next time.Time
+	var nextTrains []TrainSchedule
 	for _, t := range times {
-		if t.After(now) && (next.IsZero() || t.Before(next)) {
-			next = t
+		if t.After(now) {
+			nextTrains = append(nextTrains, TrainSchedule{Departure: t.Format("15:04")})
+			if len(nextTrains) == 3 {
+				break
+			}
 		}
 	}
 
-	if next.IsZero() {
+	if len(nextTrains) == 0 {
 		return nil, errors.New("no next train available today")
 	}
 
 	return &NextTrainOut{
 		TrainId:     id,
-		Destination: scheduleSelected.StationName,
-		Departure:   next.Format("15:04"),
+		Station:     scheduleSelected.StationName,
+		Destination: DestinationMap[destination],
+		NextTrains:  nextTrains,
 	}, nil
 }

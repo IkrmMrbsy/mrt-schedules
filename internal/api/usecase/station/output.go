@@ -22,7 +22,12 @@ type FareOut struct {
 }
 
 type NextTrainOut struct {
-	TrainId     string `json:"train_id"`
-	Destination string `json:"destination"`
-	Departure   string `json:"departure_time"`
+	TrainId     string          `json:"train_id"`
+	Station     string          `json:"station"`
+	Destination string          `json:"destination"`
+	NextTrains  []TrainSchedule `json:"next_trains"`
+}
+
+type TrainSchedule struct {
+	Departure string `json:"deperture_time"`
 }
