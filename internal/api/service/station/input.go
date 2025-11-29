@@ -5,27 +5,48 @@ package station
 // Tag `json:"nid"` artinya Id diisi dari field "nid" pada JSON.
 // Tag `json:"title"` artinya Name diisi dari field "title" pada JSON.
 type StationIn struct {
-	Id   string `json:"nid"`
-	Name string `json:"title"`
+	ID          string `json:"nid"`
+	NamaStasiun string `json:"title"`
+
+	Antarmoda     string        `json:"antarmodas"`
+	PetaLokalitas string        `json:"peta_lokalitas"`
+	Banner        string        `json:"banner"`
+	Retails       []RetailIn    `json:"retails"`
+	Fasilitas     []FasilitasIn `json:"fasilitas"`
+}
+
+type RetailIn struct {
+	ID          string `json:"nid"`
+	Judul       string `json:"title"`
+	JenisRetail string `json:"jenis_retail"`
+	Cover       string `json:"cover"`
+}
+
+type FasilitasIn struct {
+	ID             string `json:"nid"`
+	Judul          string `json:"title"`
+	JenisFasilitas string `json:"jenis_fasilitas"`
+	Cover          string `json:"cover"`
 }
 
 type ScheduleIn struct {
-	StationId               string `json:"nid"`
-	StationName             string `json:"title"`
-	ScheduleBundaranHI      string `json:"jadwal_hi_biasa"`
-	ScheduleBundaranHILibur string `json:"jadwal_hi_libur"`
-	ScheduleLebakBulus      string `json:"jadwal_lb_biasa"`
-	ScheduleLebakBulusLibur string `json:"jadwal_lb_libur"`
+	IDStasiun             string `json:"nid"`
+	NamaStasiun           string `json:"title"`
+	JadwalBundaranHIBiasa string `json:"jadwal_hi_biasa"`
+	JadwalBundaranHILibur string `json:"jadwal_hi_libur"`
+	JadwalLebakBulusBiasa string `json:"jadwal_lb_biasa"`
+	JadwalLebakBulusLibur string `json:"jadwal_lb_libur"`
 }
 
 type EstimasiIn struct {
-	StationNid string `json:"stasiun_nid"`
-	Tarif      string `json:"tarif"`
-	Waktu      string `json:"waktu"`
+	IDStasiunTujuan string `json:"stasiun_nid"`
+	Tarif           string `json:"tarif"`
+	Waktu           string `json:"waktu"`
 }
+
 type FareIn struct {
-	Id       string       `json:"nid"`
-	Name     string       `json:"title"`
-	Fare     string       `json:"tarif"`
+	ID       string       `json:"nid"`
+	Nama     string       `json:"title"`
+	Tarif    string       `json:"tarif"`
 	Estimasi []EstimasiIn `json:"estimasi"`
 }
