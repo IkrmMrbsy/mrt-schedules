@@ -30,6 +30,10 @@ func Initiate(router *gin.RouterGroup, usecase station.Usecase) {
 	station.GET("/:id/next-train", func(ctx *gin.Context) {
 		GetNextTrainByStation(ctx, usecase)
 	})
+
+	station.GET("/:id/details", func(ctx *gin.Context) {
+		GetStationDetails(ctx, usecase)
+	})
 }
 
 // GetAllStation adalah handler untuk route GET /stations.
@@ -80,6 +84,18 @@ func GetNextTrainByStation(ctx *gin.Context, usecase station.Usecase) {
 	destination := ctx.Query("destination")
 
 	resp, err := usecase.GetNextTrainByStation(id, destination)
+	if err != nil {
+		response.NotFound(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, resp)
+}
+
+func GetStationDetails(ctx *gin.Context, usecase station.Usecase) {
+	id := ctx.Param("id")
+
+	resp, err := usecase.GetStationDetails(id)
 	if err != nil {
 		response.NotFound(ctx, err.Error())
 		return

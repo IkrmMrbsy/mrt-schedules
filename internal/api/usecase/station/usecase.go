@@ -14,6 +14,7 @@ type Usecase interface {
 	CheckScheduleByStation(id string) ([]ScheduleOut, error)
 	GetFareAndDuration(fromId, toId string) (FareOut, error)
 	GetNextTrainByStation(id, destination string) (*NextTrainOut, error)
+	GetStationDetails(id string) (*DetailStationOut, error)
 }
 
 type usecase struct {
@@ -32,13 +33,16 @@ func (u *usecase) GetAllStation(name string) ([]StationOut, error) {
 
 	if name != "" {
 		stations = utils.Filter(stations, func(s station.StationIn) bool {
-			return strings.Contains(strings.ToLower(s.Name), strings.ToLower(name))
+			return strings.Contains(strings.ToLower(s.NamaStasiun), strings.ToLower(name))
 		})
 	}
 
 	var resp []StationOut
 	for _, item := range stations {
-		resp = append(resp, StationOut(item))
+		resp = append(resp, StationOut{
+			Id:   item.ID,
+			Nama: item.NamaStasiun,
+		})
 	}
 
 	return resp, nil
@@ -52,12 +56,12 @@ func (u *usecase) CheckScheduleByStation(id string) ([]ScheduleOut, error) {
 
 	var scheduleSelected station.ScheduleIn
 	for _, item := range schedules {
-		if item.StationId == id {
+		if item.IDStasiun == id {
 			scheduleSelected = item
 			break
 		}
 	}
-	if scheduleSelected.StationId == "" {
+	if scheduleSelected.IDStasiun == "" {
 		return nil, errors.New("station not found")
 	}
 
@@ -72,18 +76,18 @@ func (u *usecase) GetFareAndDuration(fromId, toId string) (FareOut, error) {
 
 	var fromName, toName, fare, duration string
 	for _, st := range stations {
-		if st.Id == fromId {
-			fromName = st.Name
+		if st.ID == fromId {
+			fromName = st.Nama
 			for _, e := range st.Estimasi {
-				if e.StationNid == toId {
+				if e.IDStasiunTujuan == toId {
 					fare = e.Tarif
 					duration = e.Waktu + " menit"
 					break
 				}
 			}
 		}
-		if st.Id == toId {
-			toName = st.Name
+		if st.ID == toId {
+			toName = st.Nama
 		}
 		if fromName != "" && toName != "" && fare != "" {
 			break
@@ -98,10 +102,10 @@ func (u *usecase) GetFareAndDuration(fromId, toId string) (FareOut, error) {
 	}
 
 	return FareOut{
-		From:     fromName,
-		To:       toName,
-		Fare:     fare,
-		Duration: duration,
+		Dari:   fromName,
+		Ke:     toName,
+		Tarif:  fare,
+		Durasi: duration,
 	}, nil
 }
 
@@ -113,12 +117,12 @@ func (u *usecase) GetNextTrainByStation(id, destination string) (*NextTrainOut, 
 
 	var scheduleSelected station.ScheduleIn
 	for _, item := range schedules {
-		if item.StationId == id {
+		if item.IDStasiun == id {
 			scheduleSelected = item
 			break
 		}
 	}
-	if scheduleSelected.StationId == "" {
+	if scheduleSelected.IDStasiun == "" {
 		return nil, errors.New("station not found")
 	}
 
@@ -127,15 +131,15 @@ func (u *usecase) GetNextTrainByStation(id, destination string) (*NextTrainOut, 
 
 	if destination == "LB" {
 		if isWeekend {
-			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleLebakBulusLibur)
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.JadwalLebakBulusLibur)
 		} else {
-			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleLebakBulus)
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.JadwalLebakBulusBiasa)
 		}
 	} else if destination == "HI" {
 		if isWeekend {
-			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleBundaranHILibur)
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.JadwalBundaranHILibur)
 		} else {
-			times, err = ConvertScheduleToTimeFormat(scheduleSelected.ScheduleBundaranHI)
+			times, err = ConvertScheduleToTimeFormat(scheduleSelected.JadwalBundaranHIBiasa)
 		}
 	} else {
 		return nil, errors.New("invalid destination, use 'LB' or 'HI'")
@@ -148,7 +152,7 @@ func (u *usecase) GetNextTrainByStation(id, destination string) (*NextTrainOut, 
 	var nextTrains []TrainSchedule
 	for _, t := range times {
 		if t.After(now) {
-			nextTrains = append(nextTrains, TrainSchedule{Departure: t.Format("15:04")})
+			nextTrains = append(nextTrains, TrainSchedule{WaktuKeberangkatan: t.Format("15:04")})
 			if len(nextTrains) == 3 {
 				break
 			}
@@ -160,9 +164,45 @@ func (u *usecase) GetNextTrainByStation(id, destination string) (*NextTrainOut, 
 	}
 
 	return &NextTrainOut{
-		TrainId:     id,
-		Station:     scheduleSelected.StationName,
-		Destination: DestinationMap[destination],
-		NextTrains:  nextTrains,
+		IdKereta:         id,
+		Stasiun:          scheduleSelected.NamaStasiun,
+		Tujuan:           DestinationMap[destination],
+		KeretaBerikutnya: nextTrains,
 	}, nil
+}
+
+func (u *usecase) GetStationDetails(id string) (*DetailStationOut, error) {
+	stations, err := u.service.FetchStations()
+	if err != nil {
+		return nil, err
+	}
+
+	var stationData *station.StationIn
+	for _, st := range stations {
+		if st.ID == id {
+			stationData = &st
+			break
+		}
+	}
+
+	if stationData == nil {
+		return nil, errors.New("station not found")
+	}
+
+	antarmodaParsed := ParseAntarmoda(stationData.Antarmoda)
+
+	komersial := GroupRetailAndFacilities(stationData.Retails, stationData.Fasilitas)
+
+	resp := &DetailStationOut{
+		ID:          stationData.ID,
+		NamaStasiun: stationData.NamaStasiun,
+		Gambar: GambarOut{
+			Banner:        stationData.Banner,
+			PetaLokalitas: stationData.PetaLokalitas,
+		},
+		TransportasiLanjutan: antarmodaParsed,
+		FasilitasKomersial:   komersial,
+	}
+
+	return resp, nil
 }
